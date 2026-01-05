@@ -21,15 +21,11 @@ Although the final charges may appear in different currencies or units depending
 
 ### YYZ
 
-Net Charges have to be calculated:
-
-\[
-\text{Charges} = \text{Weight Factor} \times \text{Unit Rate} \times \text{Distance (BILLDIST)}
-\]
+Charges = Weight Factor × Unit Rate × Distance (BILLDIST)
 
 Where:
-- **Weight Factor** is the square root of MTOW  
-- **Unit Rate** is constant **0.03524**
+- **Weight Factor** = square root of MTOW  
+- **Unit Rate** = 0.03524
 
 ---
 
@@ -37,101 +33,61 @@ Where:
 
 1. **Weight Factor** is available in the Rate Master for different MTOWs  
 2. **Distance Factor** is also available  
-3. **Route Unit** is calculated as:
-
-\[
-\text{Route Unit} = \text{Weight Factor} \times \text{Distance Factor}
-\]
-
-4. **Charges** are then calculated:
-
-\[
-\text{Charges} = \text{Route Unit} \times \text{Unit Rate}
-\]
-
-- **Unit Rate** is constant **0.65**
+3. **Route Unit** = Weight Factor × Distance Factor  
+4. **Charges** = Route Unit × Unit Rate  
+   - **Unit Rate** = 0.65
 
 ---
 
 ### IKA
 
-1. Convert distance from Nautical Miles to KM:
+1. Convert distance from Nautical Miles to KM  
+   KM = Miles × 1.852
 
-\[
-\text{KM} = \text{Miles} \times 1.852
-\]
+2. Final Unit Rate = (MTOW × Unit Rate) + Additional Charge (if MTOW > 150T)  
+   - **Unit Rate** = 0.00286  
+   - **Additional Charge** = 0.18 (only if MTOW > 150T)
 
-2. Calculate **Final Unit Rate**:
-
-\[
-\text{Final Unit Rate} = (\text{MTOW} \times \text{Unit Rate}) + \text{Additional Charge (if above 150 Tonnes)}
-\]
-
-- **Unit Rate** = **0.00286**  
-- **Additional Charge** = **0.18** (applied only if MTOW > 150T)
-
-3. Calculate **Charges**:
-
-\[
-\text{Charges} = \text{Final Unit Rate} \times \text{Distance}
-\]
+3. **Charges** = Final Unit Rate × Distance
 
 ---
 
 ### LHR
 
-Two components apply: **NATS Charge** and **Satellite Data Charge**
+Two components: **NATS Charge** and **Satellite Data Charge**
 
-1. **Flat Rate**:
+1. Flat Rate = NATS Charge + Satellite Data Charge  
+   - NATS Charge = 57.6  
+   - Satellite Data Charge = 38.89  
+   - **Total Flat Rate = 96.49**
 
-\[
-\text{Flat Rate} = \text{NATS Charge} + \text{Satellite Data Charge}
-\]
-
-- **NATS Charge** = 57.6  
-- **Satellite Data Charge** = 38.89  
-- **Total Flat Rate** = **96.49**
-
-2. **Charges**:
-
-\[
-\text{Charges} = \text{Flat Rate} \times \text{Distance}
-\]
+2. **Charges** = Flat Rate × Distance
 
 ---
 
 ### SGN
 
 Flat rate based on MTOW:
-- MTOW **97** → Charges **286**  
-- MTOW **228** → Charges **460**
+- MTOW 97 → Charges 286  
+- MTOW 228 → Charges 460
 
 ---
 
 ### DOH
 
 1. Additional file required  
-2. Map **IATA codes** for arrival and departure from master file  
-3. Verify whether the flight has landed in Doha  
-4. Refer to Rate Master for MTOW-based pricing and landing condition
+2. Map IATA codes for arrival and departure  
+3. Verify if flight landed in Doha  
+4. Refer to Rate Master based on MTOW and landing status
 
 ---
 
 ### MCT
 
-1. Extract **Distance** from the given column  
-2. Calculate **Distance Factor**:
-
-\[
-\text{Distance Factor} = \text{Distance} / 100
-\]
-
-3. Map **Weight Factor** and **Unit Rate** from Rate Master  
-4. Final calculation:
-
-\[
-\text{Charges} = \text{Unit Rate} \times \text{Distance Factor} \times \text{Weight Factor}
-\]
+1. Extract Distance from the column  
+2. Distance Factor = Distance / 100  
+3. Map Weight Factor and Unit Rate from Rate Master  
+4. **Charges** = Unit Rate × Distance Factor × Weight Factor
 
 ---
 
@@ -144,25 +100,10 @@ Map the value and check for mismatches.
 
 ### Egypt (Irregular Data)
 
-1. Weight Factor:
-
-\[
-\text{Weight Factor} = \sqrt{\text{MTOW}} / 50
-\]
-
-2. Distance Factor:
-
-\[
-\text{Distance Factor} = \text{Distance} / 100
-\]
-
-3. Final Charges:
-
-\[
-\text{Final Charges} = \text{Unit Rate} \times \text{Distance Factor} \times \text{Weight Factor}
-\]
-
-- **Unit Rate** is constant **21.38**
+1. Weight Factor = sqrt(MTOW) / 50  
+2. Distance Factor = Distance / 100  
+3. **Final Charges** = Unit Rate × Distance Factor × Weight Factor  
+   - **Unit Rate** = 21.38
 
 ---
 
@@ -178,27 +119,19 @@ Same process as **DOH**:
 
 ### CMB
 
-1. Cap distance:
-   - Below **300** → **300**
-   - Above **600** → **600**
+1. Cap Distance:
+   - If below 300 → use 300  
+   - If above 600 → use 600  
 
-2. Final Charges:
-
-\[
-\text{Charges} = (\text{Capped Distance} + \text{MTOW}) / 3
-\]
+2. **Charges** = (Capped Distance + MTOW) / 3
 
 ---
 
 ### RUSSIA
 
-1. Round distance up to nearest hundred  
+1. Round Distance up to nearest hundred (e.g., 148 → 200)  
 2. Map MTOW and Unit Rate  
-3. Calculate:
-
-\[
-\text{Charges} = \text{Unit Rate} \times (\text{Distance} / 100)
-\]
+3. **Charges** = Unit Rate × (Distance / 100)
 
 ---
 
