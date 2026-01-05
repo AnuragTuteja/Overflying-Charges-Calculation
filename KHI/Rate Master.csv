@@ -1,0 +1,16 @@
+﻿"TOTAL
+DISTANCE (KM)",MTOW,Unit Rate,Charge,Formula
+717.65,253,1,717.65,Distance*Unit rate
+593.1956,352,1.14,676.242984,Distance*Unit rate
+717.65,228,0.88,631.532,Distance*Unit rate
+717.65,352,1.14,818.121,Distance*Unit rate
+1243.0624,247,0.88,1093.894912,Distance*Unit rate
+799.5084,228,0.88,703.567392,Distance*Unit rate
+1285.288,68,0.58,745.46704,Distance*Unit rate
+593.1956,228,0.88,522.012128,Distance*Unit rate
+1285.288,79,0.58,745.46704,Distance*Unit rate
+1285.288,247,0.88,1131.05344,Distance*Unit rate
+1285.288,228,0.88,1131.05344,Distance*Unit rate
+696.9076,228,0.88,613.278688,Distance*Unit rate
+720.7984,352,1.14,821.710176,Distance*Unit rate
+593.1956,253,1,593.1956,Distance*Unit rate
