@@ -101,20 +101,39 @@ else:
     print("ERROR: Could not find registration column")
     df_working['Aircraft_Reg'] = None
 
-# Lookup MTOW from master file
-def get_mtow_from_master(reg):
-    """Get MTOW from master file using aircraft registration"""
+# Find MTOW column in vendor file
+mtow_col = None
+for col in df_working.columns:
+    col_lower = col.lower()
+    if 'mtow' in col_lower:
+        mtow_col = col
+        break
+
+if mtow_col:
+    df_working['MTOW_vendor'] = df_working[mtow_col].apply(extract_numeric_value)
+else:
+    df_working['MTOW_vendor'] = np.nan
+
+# If vendor MTOW is missing, lookup from master (in kg, needs conversion)
+def get_mtow(reg, vendor_mtow):
+    """Get MTOW in tonnes - prefer vendor data, fallback to master"""
+    if pd.notna(vendor_mtow):
+        return vendor_mtow
+    # Lookup from master (returns kg, convert to tonnes)
     if pd.isna(reg) or reg is None:
         return np.nan
     matches = df_mtow_master[df_mtow_master['Aircraft'].str.strip() == str(reg).strip()]
     if len(matches) > 0:
-        return matches.iloc[0]['MTOW_in_KGs']
+        mtow_kg = matches.iloc[0]['MTOW_in_KGs']
+        return mtow_kg / 1000.0  # Convert kg to tonnes
     return np.nan
 
-df_working['MTOW'] = df_working['Aircraft_Reg'].apply(get_mtow_from_master)
+df_working['MTOW'] = df_working.apply(lambda row: get_mtow(row['Aircraft_Reg'], row['MTOW_vendor']), axis=1)
 
 print(f"\nMTOW Lookup Results:")
-print(f"  Successfully mapped: {df_working['MTOW'].notna().sum()}/{len(df_working)}")
+print(f"  From vendor: {df_working['MTOW_vendor'].notna().sum()}")
+print(f"  From master (converted kg->tonnes): {(df_working['MTOW'].notna() & df_working['MTOW_vendor'].isna()).sum()}")
+print(f"  Total successfully obtained: {df_working['MTOW'].notna().sum()}/{len(df_working)}")
 
 # Find vendor charge column
 charge_col = None
@@ -141,9 +160,25 @@ else:
 
 print(f"  Valid vendor charges: {df_working['Vendor_Charge'].notna().sum()}/{len(df_working)}")
 
+# Extract distance
+distance_col = None
+for col in df_working.columns:
+    col_lower = col.lower()
+    if col_lower == 'dist' or ('distance' in col_lower and 'km' in col_lower):
+        distance_col = col
+        break
+
+if distance_col:
+    df_working['Distance_km'] = df_working[distance_col].apply(extract_numeric_value)
+else:
+    print("WARNING: Could not find distance column")
+    df_working['Distance_km'] = np.nan
+
+print(f"  Valid distances: {df_working['Distance_km'].notna().sum()}/{len(df_working)}")
+
 # STEP 2: RATE MASTER LOOKUP
 print("\n" + "="*100)
-print("STEP 2: FLAT RATE LOOKUP FROM RATE MASTER")
+print("STEP 2: RATE LOOKUP FROM RATE MASTER")
 print("="*100)
 
 # Display rate master mapping
@@ -161,8 +196,8 @@ if mtow_col and charge_rate_col:
         print(f"  MTOW {row[mtow_col]:<15} -> Charge {row[charge_rate_col]}")
 
 # Lookup charge based on MTOW
-def get_charge_from_master(mtow):
-    """Get flat rate charge from rate master based on MTOW"""
+def get_unit_rate(mtow):
+    """Get unit rate from rate master based on MTOW (tonnes - no conversion needed)"""
     if pd.isna(mtow):
         return np.nan
     
@@ -177,14 +212,15 @@ def get_charge_from_master(mtow):
     if len(numeric_cols) < 2:
         return np.nan
     
-    # First numeric column is usually MTOW, second is Charge
+    # First numeric column is usually MTOW, second is Rate
     mtow_col = numeric_cols[0]
-    charge_col = numeric_cols[1]
+    rate_col = numeric_cols[1]
     
+    # MTOW from vendor is already in tonnes, use directly
     # Try exact match
     matching_rates = df_rate_master[df_rate_master[mtow_col] == mtow]
     if len(matching_rates) > 0:
-        return matching_rates.iloc[0][charge_col]
+        return matching_rates.iloc[0][rate_col]
     
     # Try closest match
     rate_copy = df_rate_master.copy()
@@ -197,16 +233,27 @@ def get_charge_from_master(mtow):
     rate_copy['MTOW_diff'] = abs(rate_copy[mtow_col] - mtow)
     best_match = rate_copy.loc[rate_copy['MTOW_diff'].idxmin()]
     
-    return best_match[charge_col]
+    return best_match[rate_col]
 
-df_working['Calculated_Charge'] = df_working['MTOW'].apply(get_charge_from_master)
+df_working['Unit_Rate'] = df_working['MTOW'].apply(get_unit_rate)
 
-print(f"\nCharge Mapping Results:")
-print(f"  Successfully mapped: {df_working['Calculated_Charge'].notna().sum()}/{len(df_working)}")
+print(f"\nUnit Rate Lookup Results:")
+print(f"  Successfully mapped: {df_working['Unit_Rate'].notna().sum()}/{len(df_working)}")
 
-# STEP 3: VERIFICATION
+# STEP 3: CHARGE CALCULATION
 print("\n" + "="*100)
-print("STEP 3: CHARGE VERIFICATION")
+print("STEP 3: CHARGE CALCULATION: (Distance/100) * Rate")
+print("="*100)
+
+# Calculate charge: (Distance / 100) × Rate
+df_working['Calculated_Charge'] = ((df_working['Distance_km'] / 100) * df_working['Unit_Rate']).round(2)
+
+print(f"\nCharge Calculation Results:")
+print(f"  Successfully calculated: {df_working['Calculated_Charge'].notna().sum()}/{len(df_working)}")
+
+# STEP 4: VERIFICATION
+print("\n" + "="*100)
+print("STEP 4: CHARGE VERIFICATION")
 print("="*100)
 
 tolerance = 0.01
@@ -257,7 +304,7 @@ if len(matched_data) > 0:
 print("\n" + "="*100)
 print("DETAILED VERIFICATION RESULTS (First 20 rows):")
 print("="*100)
-display_cols = [col for col in ['Aircraft_Reg', 'MTOW', 'Calculated_Charge', 'Vendor_Charge', 'Difference', 'Status'] 
+display_cols = [col for col in ['Aircraft_Reg', 'Distance_km', 'Unit_Rate', 'MTOW', 'Calculated_Charge', 'Vendor_Charge', 'Difference', 'Status'] 
                 if col in df_working.columns]
 print(df_working[display_cols].head(20).to_string())
 
@@ -277,10 +324,12 @@ if len(mismatches) > 0:
         print(f"  Mean difference: ${valid_mismatches['Difference'].mean():.2f}")
         print(f"  Total vendor difference: ${valid_mismatches['Vendor_Charge'].sum():.2f}")
 
-# Save results
+# Save results - only include records with valid vendor charges
 output_file = "Verification_Results.csv"
-df_output = df_working[display_cols].copy()
+# Filter to only rows with valid vendor charge data
+df_output = df_working[df_working['Vendor_Charge'].notna()][display_cols].copy()
 df_output.to_csv(output_file, index=False)
 
 print(f"\n\nResults saved to: {os.path.abspath(output_file)}")
+print(f"Output contains {len(df_output)} records (filtered from {len(df_working)} total)")
 print("="*100)

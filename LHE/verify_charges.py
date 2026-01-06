@@ -141,9 +141,25 @@ else:
 
 print(f"  Valid vendor charges: {df_working['Vendor_Charge'].notna().sum()}/{len(df_working)}")
 
+# Extract distance
+distance_col = None
+for col in df_working.columns:
+    col_lower = col.lower()
+    if 'distance' in col_lower and 'km' in col_lower:
+        distance_col = col
+        break
+
+if distance_col:
+    df_working['Distance_km'] = df_working[distance_col].apply(extract_numeric_value)
+else:
+    print("WARNING: Could not find distance column")
+    df_working['Distance_km'] = np.nan
+
+print(f"  Valid distances: {df_working['Distance_km'].notna().sum()}/{len(df_working)}")
+
 # STEP 2: RATE MASTER LOOKUP
 print("\n" + "="*100)
-print("STEP 2: FLAT RATE LOOKUP FROM RATE MASTER")
+print("STEP 2: UNIT RATE LOOKUP FROM RATE MASTER")
 print("="*100)
 
 # Display rate master mapping
@@ -162,7 +178,7 @@ if mtow_col and charge_rate_col:
 
 # Lookup charge based on MTOW
 def get_charge_from_master(mtow):
-    """Get flat rate charge from rate master based on MTOW"""
+    """Get unit rate from rate master based on MTOW (no conversion - already in tonnes)"""
     if pd.isna(mtow):
         return np.nan
     
@@ -177,14 +193,15 @@ def get_charge_from_master(mtow):
     if len(numeric_cols) < 2:
         return np.nan
     
-    # First numeric column is usually MTOW, second is Charge
+    # First numeric column is usually MTOW, second is Unit Rate
     mtow_col = numeric_cols[0]
-    charge_col = numeric_cols[1]
+    rate_col = numeric_cols[1]
     
+    # MTOW from vendor is already in tonnes, use directly
     # Try exact match
     matching_rates = df_rate_master[df_rate_master[mtow_col] == mtow]
     if len(matching_rates) > 0:
-        return matching_rates.iloc[0][charge_col]
+        return matching_rates.iloc[0][rate_col]
     
     # Try closest match
     rate_copy = df_rate_master.copy()
@@ -197,16 +214,27 @@ def get_charge_from_master(mtow):
     rate_copy['MTOW_diff'] = abs(rate_copy[mtow_col] - mtow)
     best_match = rate_copy.loc[rate_copy['MTOW_diff'].idxmin()]
     
-    return best_match[charge_col]
+    return best_match[rate_col]
 
-df_working['Calculated_Charge'] = df_working['MTOW'].apply(get_charge_from_master)
+df_working['Unit_Rate'] = df_working['MTOW'].apply(get_charge_from_master)
+
+print(f"\nUnit Rate Lookup Results:")
+print(f"  Successfully mapped: {df_working['Unit_Rate'].notna().sum()}/{len(df_working)}")
+
+# STEP 3: CHARGE CALCULATION
+print("\n" + "="*100)
+print("STEP 3: CHARGE CALCULATION: Distance (km) * Unit Rate")
+print("="*100)
+
+# Calculate charge: Distance × Unit Rate
+df_working['Calculated_Charge'] = (df_working['Distance_km'] * df_working['Unit_Rate']).round(2)
 
 print(f"\nCharge Mapping Results:")
-print(f"  Successfully mapped: {df_working['Calculated_Charge'].notna().sum()}/{len(df_working)}")
+print(f"  Successfully calculated: {df_working['Calculated_Charge'].notna().sum()}/{len(df_working)}")
 
-# STEP 3: VERIFICATION
+# STEP 4: VERIFICATION
 print("\n" + "="*100)
-print("STEP 3: CHARGE VERIFICATION")
+print("STEP 4: CHARGE VERIFICATION")
 print("="*100)
 
 tolerance = 0.01
@@ -257,7 +285,7 @@ if len(matched_data) > 0:
 print("\n" + "="*100)
 print("DETAILED VERIFICATION RESULTS (First 20 rows):")
 print("="*100)
-display_cols = [col for col in ['Aircraft_Reg', 'MTOW', 'Calculated_Charge', 'Vendor_Charge', 'Difference', 'Status'] 
+display_cols = [col for col in ['Aircraft_Reg', 'Distance_km', 'Unit_Rate', 'MTOW', 'Calculated_Charge', 'Vendor_Charge', 'Difference', 'Status'] 
                 if col in df_working.columns]
 print(df_working[display_cols].head(20).to_string())
 

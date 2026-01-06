@@ -67,8 +67,8 @@ df_working['MTOW'] = df_working['Aircraft_Reg'].apply(get_mtow_from_master)
 print(f"\nMTOW Lookup Results:")
 print(f"  Successfully mapped: {df_working['MTOW'].notna().sum()}/{len(df_working)}")
 
-# Extract vendor charges from Total column
-total_col = 'Total'
+# Extract vendor charges from A/N Charge column
+total_col = 'A/N Charge'
 df_working['Vendor_Charge'] = df_working[total_col].apply(extract_numeric_value)
 
 print(f"  Valid vendor charges: {df_working['Vendor_Charge'].notna().sum()}/{len(df_working)}")

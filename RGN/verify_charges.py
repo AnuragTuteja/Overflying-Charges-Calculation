@@ -161,8 +161,8 @@ if mtow_col and charge_rate_col:
         print(f"  MTOW {row[mtow_col]:<15} -> Charge {row[charge_rate_col]}")
 
 # Lookup charge based on MTOW (converting to tonnes if needed)
-def get_charge_from_master(mtow):
-    """Get flat rate charge from rate master based on MTOW"""
+def get_charge_from_master(aircraft_reg, mtow):
+    """Get flat rate charge from rate master based on aircraft registration or MTOW"""
     if pd.isna(mtow):
         return np.nan
     
@@ -171,50 +171,80 @@ def get_charge_from_master(mtow):
     except (ValueError, TypeError):
         return np.nan
     
+    # First, check if there's an exact match by aircraft registration in Rate Master
+    # Some aircraft might have special rates
+    if pd.notna(aircraft_reg):
+        reg_str = str(aircraft_reg).strip()
+        # Look for aircraft registration in the rate master
+        for idx, row in df_rate_master.iterrows():
+            try:
+                # The rate master Location column might contain registration info
+                location = str(row.get('Location', '')).strip()
+                if reg_str in location or location in reg_str:
+                    # Found a match for this aircraft
+                    charge_cols = [col for col in df_rate_master.columns if 'charge' in col.lower()]
+                    if len(charge_cols) > 0:
+                        return float(row[charge_cols[0]])
+            except (ValueError, TypeError):
+                pass
+    
+    # If no aircraft-specific match, proceed with MTOW-based lookup
     # Find numeric columns in rate master
     numeric_cols = df_rate_master.select_dtypes(include=[np.number]).columns
     
     if len(numeric_cols) < 2:
         return np.nan
     
-    # First numeric column is usually MTOW, second is Charge
-    mtow_col = numeric_cols[0]
-    charge_col = numeric_cols[1]
-    
-    # Convert MTOW to tonnes (from kg)
-    mtow_tonnes = mtow / 1000.0
-    
-    # Try exact match with kg
-    matching_rates = df_rate_master[df_rate_master[mtow_col] == mtow]
-    if len(matching_rates) > 0:
-        return matching_rates.iloc[0][charge_col]
-    
-    # Try exact match with tonnes
-    matching_rates = df_rate_master[df_rate_master[mtow_col] == mtow_tonnes]
-    if len(matching_rates) > 0:
-        return matching_rates.iloc[0][charge_col]
-    
-    # Try closest match with tonnes
+    # The Rate Master has MTOW columns (in kg and tonnes) and Charge column
+    # Find the MTOW columns and Charge column
     rate_copy = df_rate_master.copy()
-    rate_copy[mtow_col] = pd.to_numeric(rate_copy[mtow_col], errors='coerce')
-    rate_copy = rate_copy[rate_copy[mtow_col].notna()]
     
-    if len(rate_copy) == 0:
+    # Identify which columns are MTOW and which is Charge
+    mtow_cols = [col for col in rate_copy.columns if 'mtow' in col.lower()]
+    charge_cols = [col for col in rate_copy.columns if 'charge' in col.lower()]
+    
+    if len(charge_cols) == 0 or len(mtow_cols) == 0:
         return np.nan
     
-    # Check if rate master uses tonnes or kg
-    # If max value is < 500, likely tonnes; if > 50000, likely kg
-    max_mtow = rate_copy[mtow_col].max()
-    if max_mtow < 500:  # Using tonnes
-        rate_copy['MTOW_diff'] = abs(rate_copy[mtow_col] - mtow_tonnes)
-    else:  # Using kg
-        rate_copy['MTOW_diff'] = abs(rate_copy[mtow_col] - mtow)
+    charge_col = charge_cols[0]
     
-    best_match = rate_copy.loc[rate_copy['MTOW_diff'].idxmin()]
+    # Convert MTOW from kg to tonnes
+    mtow_tonnes = mtow / 1000.0
     
-    return best_match[charge_col]
+    # Try to match with the MTOW values in rate master
+    # The Rate Master has both kg and tonnes versions of MTOW
+    for idx, row in rate_copy.iterrows():
+        # Try matching with each MTOW column
+        for mtow_col in mtow_cols:
+            try:
+                rm_mtow = float(row[mtow_col])
+                # Match either kg or tonnes
+                if (rm_mtow == mtow) or (rm_mtow == mtow_tonnes):
+                    return float(row[charge_col])
+            except (ValueError, TypeError):
+                continue
+    
+    # If no exact match, try closest match using tonnes
+    rate_copy_clean = rate_copy.copy()
+    for col in mtow_cols:
+        rate_copy_clean[col] = pd.to_numeric(rate_copy_clean[col], errors='coerce')
+    
+    # Try closest match - use the smallest MTOW column (which is tonnes)
+    if len(mtow_cols) > 0:
+        mtow_tonnes_col = min(mtow_cols, key=lambda x: rate_copy_clean[x].max())
+        rate_copy_clean['MTOW_diff'] = abs(rate_copy_clean[mtow_tonnes_col] - mtow_tonnes)
+        rate_copy_clean = rate_copy_clean.dropna(subset=['MTOW_diff', charge_col])
+        
+        if len(rate_copy_clean) > 0:
+            best_match = rate_copy_clean.loc[rate_copy_clean['MTOW_diff'].idxmin()]
+            return float(best_match[charge_col])
+    
+    return np.nan
 
-df_working['Calculated_Charge'] = df_working['MTOW'].apply(get_charge_from_master)
+df_working['Calculated_Charge'] = df_working.apply(
+    lambda row: get_charge_from_master(row['Aircraft_Reg'], row['MTOW']),
+    axis=1
+)
 
 print(f"\nCharge Mapping Results:")
 print(f"  Successfully mapped: {df_working['Calculated_Charge'].notna().sum()}/{len(df_working)}")
@@ -295,7 +325,10 @@ if len(mismatches) > 0:
 # Save results
 output_file = "Verification_Results.csv"
 df_output = df_working[display_cols].copy()
-df_output.to_csv(output_file, index=False)
-
-print(f"\n\nResults saved to: {os.path.abspath(output_file)}")
+try:
+    df_output.to_csv(output_file, index=False)
+    print(f"\n\nResults saved to: {os.path.abspath(output_file)}")
+except PermissionError:
+    print(f"\n\nNote: Could not save to {output_file} (file is open in another application)")
+    print("In-memory results are available above")
 print("="*100)

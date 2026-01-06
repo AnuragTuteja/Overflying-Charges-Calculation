@@ -149,20 +149,20 @@ for mtow, rate in mtow_to_rate.items():
 
 # Lookup unit rate based on MTOW
 def get_unit_rate(mtow):
-    """Get unit rate from rate master based on MTOW"""
+    """Get unit rate from rate master based on MTOW (convert tonnes to kg for matching)"""
     if pd.isna(mtow):
         return np.nan
     
-    # Convert MTOW to tonnes for comparison
-    mtow_tonnes = mtow
+    # Vendor MTOW is in tonnes, convert to kg for matching with rate master
+    mtow_kg = mtow * 1000
     
     # Try exact match first
-    if mtow_tonnes in mtow_to_rate:
-        return mtow_to_rate[mtow_tonnes]
+    if mtow_kg in mtow_to_rate:
+        return mtow_to_rate[mtow_kg]
     
     # Try closest match
     closest_mtow = min(mtow_to_rate.keys(), 
-                       key=lambda x: abs(x - mtow_tonnes) if pd.notna(x) else float('inf'))
+                       key=lambda x: abs(x - mtow_kg) if pd.notna(x) else float('inf'))
     if pd.notna(closest_mtow):
         return mtow_to_rate[closest_mtow]
     
