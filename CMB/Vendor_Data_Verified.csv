@@ -1,0 +1,10 @@
+Aircraft_Reg,Distance_NM,Distance_Capped,MTOW_tonnes,Calculated_Charge,Vendor_Charge,Difference,Status
+VTANW,685.0,600.0,220.0,273.33,273.33,0.0,Matched
+VTANV,554.0,554.0,220.0,258.0,258.0,0.0,Matched
+VTNAC,768.0,600.0,220.0,273.33,273.33,0.0,Matched
+VTPPK,491.0,491.0,89.0,193.33,193.33,0.0,Matched
+VTPPH,491.0,491.0,89.0,193.33,193.33,0.0,Matched
+VTTVF,777.0,600.0,94.0,231.33,231.33,0.0,Matched
+VTTVD,777.0,600.0,94.0,231.33,231.33,0.0,Matched
+VTANZ,554.0,554.0,220.0,258.0,258.0,0.0,Matched
+VTANH,554.0,554.0,220.0,258.0,258.0,0.0,Matched

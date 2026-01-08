@@ -4,15 +4,15 @@ import os
 import re
 
 # File paths
-vendor_file = "Vendor data.csv"
-mtow_master_file = "MTOW Master.xlsx - Sheet1.csv"
-rate_master_file = "Rate Master.csv"
+mtow_master = r"c:\Users\Anurag\Downloads\Assignment\Assignment\CMB\MTOW Master.csv"
+rate_master = r"c:\Users\Anurag\Downloads\Assignment\Assignment\CMB\Rate Master.csv"
+vendor_file = r"c:\Users\Anurag\Downloads\Assignment\Assignment\CMB\Vendor Data.csv"
 
 # Read files
 print("Loading files...")
 df_vendor = pd.read_csv(vendor_file)
-df_mtow_master = pd.read_csv(mtow_master_file)
-df_rate_master = pd.read_csv(rate_master_file)
+df_mtow_master = pd.read_csv(mtow_master)
+df_rate_master = pd.read_csv(rate_master)
 
 print(f"Vendor data loaded: {len(df_vendor)} records")
 print(f"MTOW Master loaded: {len(df_mtow_master)} aircraft")
@@ -212,11 +212,11 @@ if len(mismatches) > 0:
         print(f"  Total vendor difference: {valid_mismatches['Vendor_Charge'].sum():.2f}")
 
 # Save results
-output_file = "Vendor_Data_Verified.csv"
 
 output_cols = ['Aircraft_Reg', 'Distance_NM', 'Distance_Capped', 'MTOW_tonnes', 
                'Calculated_Charge', 'Vendor_Charge', 'Difference', 'Status']
 df_output = df_working[output_cols].copy()
+output_file = r"c:\Users\Anurag\Downloads\Assignment\Assignment\CMB\Vendor_Data_Verified.csv"
 df_output.to_csv(output_file, index=False)
 
 print(f"\n\nResults saved to: {os.path.abspath(output_file)}")

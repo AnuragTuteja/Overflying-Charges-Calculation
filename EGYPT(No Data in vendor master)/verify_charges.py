@@ -3,10 +3,10 @@ import numpy as np
 import os
 import re
 
-# File paths
-vendor_file = "Vendor data.csv"
-mtow_master_file = "MTOW Master.xlsx - Sheet1.csv"
-rate_master_file = "Rate Master.csv"
+# Load data
+vendor_file = r"c:\Users\Anurag\Downloads\Assignment\Assignment\EGYPT\Vendor Data.csv"
+mtow_master_file = r"c:\Users\Anurag\Downloads\Assignment\Assignment\EGYPT\MTOW Master.csv"
+rate_master_file = r"c:\Users\Anurag\Downloads\Assignment\Assignment\EGYPT\Rate Master.csv"
 
 # Read files
 print("Loading files...")
@@ -246,7 +246,7 @@ if len(mismatches) > 0:
                 print(f"  Difference {low:>4} - {high:>5}: {count:>4} records")
 
 # Save results
-output_file = "Vendor_Data_Verified.csv"
+output_file = r"c:\Users\Anurag\Downloads\Assignment\Assignment\EGYPT\Vendor_Data_Verified.csv"
 output_cols = ['Aircraft_Reg', 'MTOW_numeric', 'Distance_numeric', 'Weight_Factor', 
                'Distance_Factor', 'Calculated_Charge', 'Vendor_Charge', 'Difference', 'Status']
 df_output = df_working[output_cols].copy()

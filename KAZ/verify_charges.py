@@ -6,9 +6,9 @@ import glob
 
 # File paths - detect files automatically
 vendor_files = glob.glob("*.csv")
-vendor_file = None
-mtow_master_file = None
-rate_master_file = None
+mtow_master = r"c:\Users\Anurag\Downloads\Assignment\Assignment\KAZ\MTOW Master.csv"
+rate_master = r"c:\Users\Anurag\Downloads\Assignment\Assignment\KAZ\Rate Master.csv"
+vendor_file = r"c:\Users\Anurag\Downloads\Assignment\Assignment\KAZ\Vendor Data.csv"
 
 # Identify files
 for f in vendor_files:
